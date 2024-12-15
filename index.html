@@ -37,12 +37,12 @@
     <div class="container">
         <h1>Grade Calculator</h1>
         <label for="numSections">Number of Sections:</label>
-        <input type="number" id="numSections" min="1" value="1">
+        <input type="number" id="numSections" min="1" value="5">
         <button onclick="generateSections()">Generate Sections</button>
 
         <form id="gradeForm">
             <div id="sectionsContainer"></div>
-            <label for="targetGrade">Target Grade (%):</label>
+            <label for="targetGrade">Target Grade (A=90, B=80, C=70):</label>
             <input type="number" id="targetGrade" min="0" max="100" step="0.01" placeholder="Enter target grade">
             <button type="button" onclick="calculateGrade()">Calculate Grade</button>
         </form>
@@ -61,10 +61,12 @@
                 section.classList.add('section');
 
                 section.innerHTML = `
+                    <label>Section ${i + 1} Name:</label>
+                    <input type="text" class="section-name" placeholder="e.g., Exam 1" required>
                     <label>Section ${i + 1} Percentage (%):</label>
                     <input type="number" class="percentage" min="0" max="100" step="0.01" required>
                     <label>Section ${i + 1} Grade:</label>
-                    <input type="number" class="grade" min="0" max="100" step="0.01" required>
+                    <input type="number" class="grade" min="0" max="100" step="0.01" placeholder="Enter grade or leave blank">
                 `;
 
                 container.appendChild(section);
@@ -78,25 +80,38 @@
 
             let totalGrade = 0;
             let totalWeight = 0;
+            let missingWeight = 0;
+            let missingIndex = -1;
 
             percentages.forEach((percentage, index) => {
                 const weight = parseFloat(percentage.value);
                 const grade = parseFloat(grades[index].value);
 
-                if (isNaN(weight) || isNaN(grade)) {
+                if (isNaN(weight)) {
                     document.getElementById('result').textContent = 'Error: Please ensure all inputs are valid numbers.';
-                    totalGrade = NaN;
                     return;
                 }
 
-                totalGrade += (weight / 100) * grade;
                 totalWeight += weight;
+
+                if (isNaN(grade)) {
+                    missingWeight = weight;
+                    missingIndex = index;
+                } else {
+                    totalGrade += (weight / 100) * grade;
+                }
             });
 
-            if (!isNaN(totalGrade) && !isNaN(targetGrade)) {
-                const requiredGrade = ((targetGrade - totalGrade) / (1 - totalWeight / 100)).toFixed(2);
+            if (totalWeight > 100) {
+                document.getElementById('result').textContent = 'Error: Total percentages cannot exceed 100%.';
+                return;
+            }
+
+            if (missingIndex !== -1 && !isNaN(targetGrade)) {
+                const requiredGrade = ((targetGrade - totalGrade) / (missingWeight / 100)).toFixed(2);
+                const sectionName = document.querySelectorAll('.section-name')[missingIndex].value || `Section ${missingIndex + 1}`;
                 document.getElementById('result').textContent = `Final Grade: ${totalGrade.toFixed(2)}%
-                    Required Grade in Remaining Sections: ${requiredGrade}%`;
+                    Required Grade in ${sectionName}: ${requiredGrade}%`;
             } else if (!isNaN(totalGrade)) {
                 document.getElementById('result').textContent = `Final Grade: ${totalGrade.toFixed(2)}%`;
             }
